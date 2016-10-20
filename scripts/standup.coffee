@@ -74,13 +74,13 @@ module.exports = (robot) ->
   # Fires the standup message.
   doStandup = (room) ->
     standups = getStandupsForRoom(room).filter(standupShouldFire)
-    triggerStandup room, standups
+    triggerStandup standups[0]
     return
 
-  triggerStandup = (room, standups) ->
-    standup = if standups then standups[0] else {location: ''}
+  triggerStandup = (standup) ->
     message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{standup.location}"
-    robot.messageRoom room, message
+    console.log "triggering standup in #{standup.room} at #{standup.time}"
+    robot.messageRoom standup.room, message
     return
 
   # Finds the room for most adaptors
@@ -224,7 +224,7 @@ module.exports = (robot) ->
     room = findRoom msg
 
     switch action
-      when 'trigger' then triggerStandup room
+      when 'trigger' then triggerStandup {'room': room, 'location': '', 'time': 'NOW!'}
       when 'create' then saveStandup room, dayOfWeek, time, utcOffset, location, msg
       when 'list' then listStandupsForRoom room, msg
       when 'list all' then listStandupsForAllRooms msg
