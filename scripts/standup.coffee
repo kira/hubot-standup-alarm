@@ -72,11 +72,14 @@ module.exports = (robot) ->
     return
 
   # Fires the standup message.
-  doStandup = (room) ->
+  doStandup = (room, force = false) ->
     standups = getStandupsForRoom(room)
     if standups.length > 0
       # Do some magic here to loop through the standups and find the one for right now
-      theStandup = standups.filter(standupShouldFire)
+      if force
+        theStandup = standups
+      else
+        theStandup = standups.filter(standupShouldFire)
       message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{theStandup[0].location}"
     else
       message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)}"
@@ -224,7 +227,7 @@ module.exports = (robot) ->
     room = findRoom msg
 
     switch action
-      when 'trigger' then doStandup room
+      when 'trigger' then doStandup room, true
       when 'create' then saveStandup room, dayOfWeek, time, utcOffset, location, msg
       when 'list' then listStandupsForRoom room, msg
       when 'list all' then listStandupsForAllRooms msg
