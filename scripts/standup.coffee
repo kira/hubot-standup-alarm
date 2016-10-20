@@ -80,9 +80,12 @@ module.exports = (robot) ->
         theStandup = standups
       else
         theStandup = standups.filter(standupShouldFire)
-      message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{theStandup[0].location}"
-    else
-      message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)}"
+      standup = theStandup[0]
+    triggerStandup room, standup
+    return
+
+  triggerStandup = (room, standup = {location: ''}) ->
+    message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{standup.location}"
     robot.messageRoom room, message
     return
 
