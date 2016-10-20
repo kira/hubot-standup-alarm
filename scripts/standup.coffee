@@ -79,7 +79,7 @@ module.exports = (robot) ->
       theStandup = standups.filter(standupShouldFire)
       message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{theStandup[0].location}"
     else
-      message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{standups[0].location}"
+      message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)}"
     robot.messageRoom room, message
     return
 
@@ -224,6 +224,7 @@ module.exports = (robot) ->
     room = findRoom msg
 
     switch action
+      when 'trigger' then doStandup room
       when 'create' then saveStandup room, dayOfWeek, time, utcOffset, location, msg
       when 'list' then listStandupsForRoom room, msg
       when 'list all' then listStandupsForAllRooms msg
