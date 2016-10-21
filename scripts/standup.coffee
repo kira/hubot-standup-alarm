@@ -26,27 +26,78 @@
 
 ###jslint node: true###
 
+# %% shim
+modulo = (a, b) ->
+  (a % b + b) % b
+
 cronJob = require('cron').CronJob
 _ = require('underscore')
 
 module.exports = (robot) ->
-  # Compares current time to the time of the standup to see if it should be fired.
+  timeStringToHoursAndMinutes = (timeString, hoursOffset = 0, minutesOffset = 0) ->
+    direction = 1
+    minutes = 0
+    hours = 0
+
+    sign = timeString[0]
+    if sign == '-'
+      direction = -1
+    if sign in ['-', '+']
+      timeString = timeString[1..]
+
+    [hourString, minuteString] = timeString.split(':')
+
+    if !minuteString
+      [hourString, minuteString] = ['0', hourString]
+
+    [hours, minutes] = [+hourString, +minuteString]
+
+    hours += hoursOffset
+    minutes += minutesOffset
+
+    if minutes > 60
+      hours += Math.floor(minutes / 60)
+      minutes = minutes % 60
+
+    hours = modulo(hours, 24)
+
+    [direction * hours, direction * minutes]
+
+
+  # check if we're 5m out from a standup
+  standupShouldWarn = (standup) ->
+    checkTimeForStandup(standup, '-00:05')
+
+  # check if it's time for a standup
   standupShouldFire = (standup) ->
+    checkTimeForStandup(standup)
+
+  # Compares current time to the time of the standup to see if an event should fire
+  checkTimeForStandup = (standup, offset = '-00:00') ->
     standupTime = standup.time
     standupDayOfWeek = getDayOfWeek(standup.dayOfWeek)
     now = new Date()
     standupDate = new Date()
-    utcOffset = -standup.utc or (now.getTimezoneOffset() / 60)
 
-    standupHours = parseInt(standupTime.split(":")[0], 10)
-    standupMinutes = parseInt(standupTime.split(":")[1], 10)
+    utcOffset = -standup.utc or (now.getTimezoneOffset() / 60)
+    [offsetHours, offsetMinutes] = timeStringToHoursAndMinutes(offset)
+    offsetHours += utcOffset
+
+    [standupHours, standupMinutes] =
+      timeStringToHoursAndMinutes(standupTime, offsetHours, offsetMinutes)
 
     standupDate.setUTCMinutes(standupMinutes)
-    standupDate.setUTCHours(standupHours + utcOffset)
+    standupDate.setUTCHours(standupHours)
 
-    result = (standupDate.getUTCHours() == now.getUTCHours()) and
-      (standupDate.getUTCMinutes() == now.getUTCMinutes()) and
-      (standupDayOfWeek == -1 or (standupDayOfWeek == standupDate.getDay() == now.getUTCDay()))
+    hour_right = standupDate.getUTCHours() == now.getUTCHours()
+    minute_right = standupDate.getUTCMinutes() == now.getUTCMinutes()
+    day_right = standupDayOfWeek == -1 or (standupDayOfWeek == now.getUTCDay())
+
+    result = hour_right and minute_right and day_right
+
+    console.log("checking time at #{now.getUTCHours()}:#{now.getUTCMinutes()}"
+                "for standup at #{standup.time}, with offset #{offset}: "
+                "#{result}")
 
     if result then true else false
 
@@ -55,7 +106,8 @@ module.exports = (robot) ->
   getDayOfWeek = (day) ->
     if (!day)
       return -1
-    ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(day.toLowerCase().substring(0,3))
+    day_slug = day.toLowerCase.substring[..3]
+    ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(day_slug)
 
   # Returns all standups.
   getStandups = ->
@@ -67,14 +119,23 @@ module.exports = (robot) ->
 
   # Gets all standups, fires ones that should be.
   checkStandups = ->
+    console.log("checking for standups at #{new Date().getHours()}:#{new Date().getMinutes}")
     standups = getStandups()
     _.chain(standups).filter(standupShouldFire).each doStandup
+    _.chain(standups).filter(standupShouldWarn).each doWarning
     return
 
   # Fires the standup message.
   doStandup = (standup) ->
     message = "#{PREPEND_MESSAGE} #{_.sample(STANDUP_MESSAGES)} #{standup.location}"
     console.log "triggering standup in #{standup.room} at #{standup.time}"
+    robot.messageRoom standup.room, message
+    return
+
+  doWarning = (standup) ->
+    locationString = if standup.location then " #{standup.location}" else ''
+    message = "#{PREPEND_MESSAGE} Standup#{locationString} in 5 minutes!"
+    console.log "5m warning for standup in #{standup.room} at #{standup.time}"
     robot.messageRoom standup.room, message
     return
 
@@ -107,6 +168,7 @@ module.exports = (robot) ->
     updateBrain standups
     displayDate = dayOfWeek or 'weekday'
     msg.send 'Ok, from now on I\'ll remind this room to do a standup every ' + displayDate + ' at ' + time + (if location then location else '')
+    console.log("saving new standup for #{room} at #{time}")
     return
 
   # Updates the brain's standup knowledge.
