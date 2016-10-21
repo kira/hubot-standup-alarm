@@ -95,7 +95,7 @@ module.exports = (robot) ->
 
     result = hour_right and minute_right and day_right
 
-    console.log("checking time at #{now.getUTCHours()}:#{now.getUTCMinutes()}"
+    console.log("checking time at #{now.getHours()}:#{now.getMinutes()} "
                 "for standup at #{standup.time}, with offset #{offset}: "
                 "#{result}")
 
