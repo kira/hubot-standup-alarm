@@ -95,10 +95,6 @@ module.exports = (robot) ->
 
     result = hour_right and minute_right and day_right
 
-    console.log("checking time at #{now.getHours()}:#{now.getMinutes()} "
-                "for standup at #{standup.time}, with offset #{offset}: "
-                "#{result}")
-
     if result then true else false
 
   # Returns the number of a day of the week from a supplied string. Will only attempt to match the first 3 characters
@@ -106,7 +102,7 @@ module.exports = (robot) ->
   getDayOfWeek = (day) ->
     if (!day)
       return -1
-    day_slug = day.toLowerCase.substring[..3]
+    day_slug = day.toLowerCase()[..3]
     ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(day_slug)
 
   # Returns all standups.
@@ -119,7 +115,6 @@ module.exports = (robot) ->
 
   # Gets all standups, fires ones that should be.
   checkStandups = ->
-    console.log("checking for standups at #{new Date().getHours()}:#{new Date().getMinutes}")
     standups = getStandups()
     _.chain(standups).filter(standupShouldFire).each doStandup
     _.chain(standups).filter(standupShouldWarn).each doWarning
@@ -228,6 +223,8 @@ module.exports = (robot) ->
     else
       standupsText = [ 'Here\'s your standups:' ].concat(_.map(standups, (standup) ->
         text =  'Time: ' + standup.time
+        if standup.dayOfWeek
+          text += ' on ' + standup.dayOfWeek
         if standup.utc
           text += ' UTC' + standup.utc
         if standup.location
