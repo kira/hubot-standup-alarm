@@ -6,7 +6,7 @@
 #   standup' command to match the adapter you're using.
 #
 # Configuration:
-#  HUBOT_STANDUP_PREPEND
+#  HUBOT_STANDUP_PREPEND: a string to prepend to all standup reminder messaged (usually '@team')
 #
 # Commands:
 #   hubot standup help - See a help document explaining how to use.
